@@ -1,0 +1,110 @@
+{
+  "76315de2b2c7b2580bf281b8c25fb09a": {
+    "meeting_id": "76315de2b2c7b2580bf281b8c25fb09a",
+    "title": "Смена директора ООО \"Трейд инвест\"",
+    "agenda": [
+      {
+        "item_number": 1,
+        "description": "Назначить Васильева С.А.",
+        "options": [
+          "ДА",
+          "НЕТ",
+          "ВОЗДЕРЖАЛСЯ"
+        ]
+      }
+    ],
+    "initiator_id": "3851debf3bb5b33d5a8657808f0c836a46cfc16b0254fb3ed5e920dbb96b3dba",
+    "status": "active",
+    "results": {
+      "1": {
+        "ДА": 0,
+        "НЕТ": 0,
+        "ВОЗДЕРЖАЛСЯ": 0
+      }
+    },
+    "allowed_voter_ids": [],
+    "start_time": "2026-04-15T17:29:00Z",
+    "end_time": "2026-04-16T17:29:00Z"
+  },
+  "ca63210e7069df1ca3c77b6b5a1ef86c": {
+    "meeting_id": "ca63210e7069df1ca3c77b6b5a1ef86c",
+    "title": "Увеличение уставного капитала ООО \"Ромашка\"",
+    "agenda": [
+      {
+        "item_number": 1,
+        "description": "Увеличить с 10000 до 100000",
+        "options": [
+          "ЗА",
+          "ПРОТИВ",
+          "ВОЗДЕРЖАЛСЯ"
+        ]
+      }
+    ],
+    "initiator_id": "3851debf3bb5b33d5a8657808f0c836a46cfc16b0254fb3ed5e920dbb96b3dba",
+    "status": "active",
+    "results": {
+      "1": {
+        "ЗА": 1,
+        "ПРОТИВ": 0,
+        "ВОЗДЕРЖАЛСЯ": 0
+      }
+    },
+    "allowed_voter_ids": [],
+    "start_time": "2026-04-12T17:30:00Z",
+    "end_time": "2026-04-13T17:30:00Z"
+  },
+  "66d24bc23499c894435ac2a6e12b681e": {
+    "meeting_id": "66d24bc23499c894435ac2a6e12b681e",
+    "title": "Принятие членов в ПК \"Копер\"",
+    "agenda": [
+      {
+        "item_number": 1,
+        "description": "Принять Иванова И.С., Семенова Д.А.",
+        "options": [
+          "ЗА",
+          "ПРОТИВ",
+          "ВОЗДЕРЖАЛСЯ"
+        ]
+      }
+    ],
+    "initiator_id": "3851debf3bb5b33d5a8657808f0c836a46cfc16b0254fb3ed5e920dbb96b3dba",
+    "status": "active",
+    "results": {
+      "1": {
+        "ЗА": 0,
+        "ПРОТИВ": 0,
+        "ВОЗДЕРЖАЛСЯ": 1
+      }
+    },
+    "allowed_voter_ids": [],
+    "start_time": "2026-04-12T17:31:00Z",
+    "end_time": "2026-04-13T17:31:00Z"
+  },
+  "30db40f1576ed921aed863abaa69e12c": {
+    "meeting_id": "30db40f1576ed921aed863abaa69e12c",
+    "title": "Смена ригеистратора в АО \"Агро Альянс\"",
+    "agenda": [
+      {
+        "item_number": 1,
+        "description": "Сменить на ООО \"Регистр\"",
+        "options": [
+          "За",
+          "Против",
+          "Воздержался"
+        ]
+      }
+    ],
+    "initiator_id": "3851debf3bb5b33d5a8657808f0c836a46cfc16b0254fb3ed5e920dbb96b3dba",
+    "status": "active",
+    "results": {
+      "1": {
+        "За": 0,
+        "Против": 0,
+        "Воздержался": 0
+      }
+    },
+    "allowed_voter_ids": [],
+    "start_time": "2026-04-12T17:32:00Z",
+    "end_time": "2026-04-13T17:32:00Z"
+  }
+}

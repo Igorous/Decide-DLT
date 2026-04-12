@@ -1,0 +1,49 @@
+[
+  {
+    "type": "vote",
+    "transaction_id": "874da297cb558ef641698a8b8e30c8487e7fda3825e1afd03a2f4cb42c107604",
+    "timestamp": "2026-04-12T17:33:43.208675Z",
+    "payload": {
+      "type": "vote",
+      "meeting_id": "30db40f1576ed921aed863abaa69e12c",
+      "agenda_item": 1,
+      "voter_id": "3851debf3bb5b33d5a8657808f0c836a46cfc16b0254fb3ed5e920dbb96b3dba",
+      "voter_public_key": "pjtJ1QwzzMJJ3sFyDAHn1jSOyKbYo4/e+DY33rq43J0=",
+      "vote_option": "За",
+      "selected_validators": [
+        "093eccb9faed846e110e675f5b0543068c177fb04868ee734f0b48f898cd2509",
+        "c18be9a3207a5396fb25d1d748a8c3ab0884d98af4d7b7e75211f13d2ccab115",
+        "1ccbed771e971e93ccacbdba9493d2647ef5713c1d49dc765f0286220ad8193a",
+        "52c9bb8c74e91dee8b38c4bb257d8ce64c56e856d5f152292ad4bfe2b95f79ea"
+      ],
+      "validation_threshold": 3
+    },
+    "signature": "OnJpd1hA3MTNuf2E6QLgDVzKHM+5hdy9CHZREq3zzAGKDUAJXndr4KND1DVFDsuCOhEgNlyfz0pNzgjzB68NDw==",
+    "validator_confirmations": [
+      {
+        "transaction_id": "874da297cb558ef641698a8b8e30c8487e7fda3825e1afd03a2f4cb42c107604",
+        "validator_id": "093eccb9faed846e110e675f5b0543068c177fb04868ee734f0b48f898cd2509",
+        "timestamp": "2026-04-12T17:33:43.208974Z",
+        "signature": "rPlninjnmGLCQ3Y7tVGYq5ivwVsta/U0RFabEEKdRzAxKVm/pCYXy/9UEZKfPFTAhGbiyRNd2Bp0bXRG/K70AQ=="
+      },
+      {
+        "transaction_id": "874da297cb558ef641698a8b8e30c8487e7fda3825e1afd03a2f4cb42c107604",
+        "validator_id": "c18be9a3207a5396fb25d1d748a8c3ab0884d98af4d7b7e75211f13d2ccab115",
+        "timestamp": "2026-04-12T17:33:43.209149Z",
+        "signature": "p1XD9RLWbw1iVbVUd8NkIJvTfW98gX70tHw8wG4g/8FyajYTsJYETpn6ZjV193VHOh5iyeO3JBsW1QnhzuOSAA=="
+      },
+      {
+        "transaction_id": "874da297cb558ef641698a8b8e30c8487e7fda3825e1afd03a2f4cb42c107604",
+        "validator_id": "1ccbed771e971e93ccacbdba9493d2647ef5713c1d49dc765f0286220ad8193a",
+        "timestamp": "2026-04-12T17:33:43.209326Z",
+        "signature": "UzjrpgvqhoOOeHW7P+xUWUeXVBYpUZ5wzjjDwYkV4guPCGsXvptcwjDRLKRLD24L+q8Xxyy4myRmFaL97kXEBA=="
+      },
+      {
+        "transaction_id": "874da297cb558ef641698a8b8e30c8487e7fda3825e1afd03a2f4cb42c107604",
+        "validator_id": "52c9bb8c74e91dee8b38c4bb257d8ce64c56e856d5f152292ad4bfe2b95f79ea",
+        "timestamp": "2026-04-12T17:33:43.209502Z",
+        "signature": "JgvTGJeFbCKQsPiE6K1tkC8ZowBpRGvbTs4EZnU7VN04vqkvqs9BpzSWNytFvBQ8gxVNWWLK09laZoSHnhZkDg=="
+      }
+    ]
+  }
+]
