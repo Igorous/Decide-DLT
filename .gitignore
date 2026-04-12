@@ -1,3 +1,22 @@
-blockchain/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Данные (JSON-файлы, создаваемые при запуске)
 *.json
 *.backup.json
+*.log
+blockchain/
+App/blockchain/
+
+# Системные файлы
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
