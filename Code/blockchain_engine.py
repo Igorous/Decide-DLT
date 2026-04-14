@@ -17,6 +17,10 @@ from cryptography.hazmat.primitives import serialization
 
 BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else os.path.dirname(os.path.abspath(__file__))
 
+_ENV_DATA_DIR = os.getenv("DDLT_DATA_DIR", "").strip()
+if _ENV_DATA_DIR:
+    BASE_DIR = _ENV_DATA_DIR
+
 def _count_blocks_in_dir(dir_path: str) -> int:
     try:
         p = os.path.join(dir_path, "blockchain.json")
@@ -97,8 +101,8 @@ class MVPEngine:
             self.verify_block_signatures()
 
         # Start Sync Server (simple TCP)
-        self.port = 9001
-        self.udp_port = 9002
+        self.port = int(os.getenv("DDLT_PORT", "9001"))
+        self.udp_port = int(os.getenv("DDLT_UDP_PORT", "9002"))
         self.peers = [] # List of (ip, port)
         self.start_sync_server()
         self.start_discovery_listener()
@@ -310,7 +314,8 @@ class MVPEngine:
                         msg = json.loads(data.decode('utf-8'))
                         # Filter out our own broadcast on ANY local interface
                         if msg.get("type") == "discovery_ping" and addr[0] not in my_ips:
-                            self.add_peer(addr[0])
+                            peer_port = int(msg.get("port", self.port))
+                            self.add_peer(addr[0], peer_port)
                             self.broadcast_discovery_ping()
                     except:
                         pass
@@ -328,6 +333,9 @@ class MVPEngine:
             pass
         return (999, 999, 999, 999)
 
+    def _node_key(self, ip: str, port: int):
+        return (self._ip_key(ip), int(port))
+
     def _my_best_ip(self) -> str:
         ips = [ip for ip in self.get_all_my_ips() if ip not in ["127.0.0.1", "0.0.0.0"]]
         if not ips:
@@ -336,10 +344,9 @@ class MVPEngine:
 
     def _am_i_leader(self) -> bool:
         my_ip = self._my_best_ip()
-        peer_ips = [p[0] for p in self.peers]
-        all_ips = [my_ip] + peer_ips
-        leader = sorted(all_ips, key=self._ip_key)[0] if all_ips else my_ip
-        return my_ip == leader
+        nodes = [(my_ip, self.port)] + [(p[0], p[1]) for p in self.peers]
+        leader = sorted(nodes, key=lambda n: self._node_key(n[0], n[1]))[0] if nodes else (my_ip, self.port)
+        return (my_ip, self.port) == leader
 
     def get_all_my_ips(self):
         ips = ["127.0.0.1", "0.0.0.0", self.get_my_ip()]
@@ -366,10 +373,22 @@ class MVPEngine:
         except Exception:
             return ""
 
-    def send_sync_request(self, ip: str):
-        self.send_to_peer(ip, {
+    def chain_tip_hash(self) -> str:
+        try:
+            if self.blockchain:
+                return self.blockchain[-1].hash
+        except Exception:
+            pass
+        return ""
+
+    def send_sync_request(self, ip: str, port: Optional[int] = None):
+        if port is None:
+            port = self.port
+        self.send_to_peer(ip, port, {
             "type": "sync_request",
             "current_height": len(self.blockchain),
+            "tip_hash": self.chain_tip_hash(),
+            "port": self.port,
             "pool_size": len(self.transaction_pool),
             "pool_fingerprint": self.pool_fingerprint()
         })
@@ -378,8 +397,8 @@ class MVPEngine:
         def loop():
             while True:
                 try:
-                    for peer_ip, _ in list(self.peers):
-                        self.send_sync_request(peer_ip)
+                    for peer_ip, peer_port in list(self.peers):
+                        self.send_sync_request(peer_ip, peer_port)
                 except Exception:
                     pass
                 time.sleep(2)
@@ -454,12 +473,20 @@ class MVPEngine:
         threading.Thread(target=listen, daemon=True).start()
 
     def handle_sync_message(self, msg, addr):
+        try:
+            if addr and addr[0]:
+                self._remember_peer(addr[0], int(msg.get("port", self.port)))
+        except Exception:
+            pass
+
         # Full sync: if someone requests it, send them our chain
         if msg.get("type") == "sync_request":
             requester_height = msg.get("current_height", 0)
+            requester_tip = msg.get("tip_hash", "")
+            requester_port = int(msg.get("port", self.port))
             requester_pool_fp = msg.get("pool_fingerprint", "")
             requester_pool_size = msg.get("pool_size", 0)
-            need_chain = requester_height < len(self.blockchain)
+            need_chain = requester_height < len(self.blockchain) or (requester_height == len(self.blockchain) and requester_tip and requester_tip != self.chain_tip_hash())
             need_pool = requester_pool_fp != self.pool_fingerprint() or requester_pool_size != len(self.transaction_pool)
 
             if need_chain:
@@ -474,42 +501,59 @@ class MVPEngine:
             else:
                 resp = {"type": "sync_noop"}
 
-            self.send_to_peer(addr[0], resp)
+            self.send_to_peer(addr[0], requester_port, resp)
         
         elif msg.get("type") == "sync_full_state":
             # Remember the sender as a peer (important if discovery is one-way)
             if addr and addr[0]:
-                self._remember_peer(addr[0])
+                self._remember_peer(addr[0], self.port)
 
             new_chain_data = msg.get("blockchain", [])
             replaced_chain = False
-            if isinstance(new_chain_data, list) and len(new_chain_data) > len(self.blockchain):
+            if isinstance(new_chain_data, list) and (len(new_chain_data) > len(self.blockchain) or (len(new_chain_data) == len(self.blockchain) and len(new_chain_data) > 0)):
                 temp_chain = [Block.from_dict(b) for b in new_chain_data]
                 if not self._validate_chain(temp_chain):
                     print(f"SYNC: Rejected corrupted chain from {addr}")
                     return
-                print(f"SYNC: Received full state from {addr}. Replacing local chain...")
-                self.blockchain = temp_chain
-                self.save_blockchain()
-                replaced_chain = True
+                incoming_tip = temp_chain[-1].hash if temp_chain else ""
+                local_tip = self.chain_tip_hash()
+                should_replace = len(temp_chain) > len(self.blockchain) or (incoming_tip and local_tip and incoming_tip < local_tip)
+                if should_replace:
+                    print(f"SYNC: Received full state from {addr}. Replacing local chain...")
+                    self.blockchain = temp_chain
+                    self.save_blockchain()
+                    replaced_chain = True
 
-            # Update validators (always), preserving local private keys when possible
+            # Merge validators, never dropping local validators (dropping them breaks mining).
             local_by_id = {v.validator_id: v for v in self.validators}
             new_validators_data = msg.get("validators", [])
             if isinstance(new_validators_data, list) and new_validators_data:
-                self.validators = []
                 for v_data in new_validators_data:
-                    v = Validator(v_data["name"], v_data["organization"])
-                    v.public_key = base64.b64decode(v_data["public_key"])
-                    v.validator_id = v_data["validator_id"]
-                    v.status = v_data.get("status", "active")
-                    v.rating = v_data.get("rating", 5.0)
-                    prev_local = local_by_id.get(v.validator_id)
-                    if prev_local and self._validator_private_matches_public(prev_local):
-                        v.private_key = prev_local.private_key
+                    vid = v_data.get("validator_id", "")
+                    if not vid:
+                        continue
+                    existing = local_by_id.get(vid)
+                    if existing:
+                        try:
+                            existing.public_key = base64.b64decode(v_data["public_key"])
+                        except Exception:
+                            pass
+                        existing.name = v_data.get("name", existing.name)
+                        existing.organization = v_data.get("organization", existing.organization)
+                        existing.status = v_data.get("status", existing.status)
+                        existing.rating = v_data.get("rating", existing.rating)
                     else:
+                        v = Validator(v_data.get("name", "Validator"), v_data.get("organization", "Peer"))
+                        try:
+                            v.public_key = base64.b64decode(v_data["public_key"])
+                        except Exception:
+                            v.public_key = b""
                         v.private_key = b""
-                    self.validators.append(v)
+                        v.validator_id = vid
+                        v.status = v_data.get("status", "active")
+                        v.rating = v_data.get("rating", 0.5)
+                        self.validators.append(v)
+                        local_by_id[vid] = v
                 self.save_validators()
 
             # Merge pool from peer even if chain length is the same (this is what makes pending sync immediate)
@@ -572,6 +616,11 @@ class MVPEngine:
                 print(f"SYNC: Received valid new block #{new_block.index} from {addr}")
             else:
                 print(f"SYNC: Ignored invalid or duplicate block #{new_block.index} from {addr}")
+                # If we are behind or on a fork, request full state
+                try:
+                    self.send_sync_request(addr[0], self.port)
+                except Exception:
+                    pass
         
         elif msg.get("type") == "new_tx":
             tx_data = msg.get("data")
@@ -582,15 +631,15 @@ class MVPEngine:
 
     def broadcast(self, msg_type, data):
         # Broadcast to all known peers
-        msg = {"type": msg_type, "data": data}
+        msg = {"type": msg_type, "data": data, "port": self.port}
         for peer in self.peers:
-            self.send_to_peer(peer[0], msg)
+            self.send_to_peer(peer[0], peer[1], msg)
 
-    def _remember_peer(self, ip: str):
+    def _remember_peer(self, ip: str, port: int):
         if ip in self.get_all_my_ips():
             return
-        if (ip, self.port) not in self.peers:
-            self.peers.append((ip, self.port))
+        if (ip, port) not in self.peers:
+            self.peers.append((ip, port))
 
     def _merge_pool(self, txs: List[Dict[str, Any]]):
         existing = set(tx.get("transaction_id") for tx in self.transaction_pool)
@@ -611,14 +660,16 @@ class MVPEngine:
         if changed:
             self.save_pool()
 
-    def add_peer(self, ip):
+    def add_peer(self, ip, port=None):
+        if port is None:
+            port = self.port
         if ip in self.get_all_my_ips():
             return
-        if (ip, self.port) not in self.peers:
-            self.peers.append((ip, self.port))
+        if (ip, port) not in self.peers:
+            self.peers.append((ip, port))
             print(f"Peer added: {ip}")
             # When a peer is added, request their blockchain
-            self.send_sync_request(ip)
+            self.send_sync_request(ip, port)
             # Also proactively push our state (fixes one-way discovery / firewall edge cases)
             if len(self.blockchain) > 1 or len(self.transaction_pool) > 0:
                 full_state = {
@@ -627,14 +678,14 @@ class MVPEngine:
                     "validators": [v.to_dict() for v in self.validators],
                     "tx_pool": list(self.transaction_pool)
                 }
-                self.send_to_peer(ip, full_state)
+                self.send_to_peer(ip, port, full_state)
 
-    def send_to_peer(self, ip, msg):
+    def send_to_peer(self, ip, port, msg):
         try:
             msg_str = json.dumps(msg, ensure_ascii=False).encode('utf-8')
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.settimeout(8.0)
-            s.connect((ip, self.port))
+            s.connect((ip, int(port)))
             s.sendall(msg_str)
             s.close()
         except:
